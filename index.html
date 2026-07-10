@@ -5,117 +5,362 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>마미아이 — 우리 아이 근시 기록</title>
   <meta name="description" content="안과·안경원에 흩어진 아이 시력 기록을 한곳에. 현직 안경사가 만든 아동 근시 추적 앱, 마미아이.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👁️</text></svg>">
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <style>
+    /* ── 마미아이 토큰 (Stripe 디자인 언어 × 마미아이 민트 팔레트) ── */
     :root {
-      --primary: #0e8f88;
-      --primary-dark: #0a6e69;
-      --primary-soft: #e3f4f2;
-      --ink: #1d2b2a;
-      --ink-soft: #5a6b6a;
-      --bg: #fbfdfc;
-      --card: #ffffff;
-      --line: #e4edeb;
-      --warn-bg: #fff8ec;
-      --warn-line: #f0e2c4;
+      --primary: #0e8f88;          /* 시그니처 CTA — 밴드당 1회만 채움 */
+      --primary-deep: #0a6e69;
+      --primary-press: #085a56;
+      --primary-soft: #35b0a8;
+      --primary-subdued: #cdeae7;  /* 소프트 태그 배경 */
+      --brand-dark: #0f3d3a;       /* featured 카드·푸터 딥 틸 */
+      --ink: #0d2b33;              /* 본문 — 순검정 금지, 딥 틸네이비 */
+      --ink-secondary: #28444b;
+      --ink-mute: #5f7a80;
+      --on-primary: #ffffff;
+      --canvas: #ffffff;
+      --canvas-soft: #f5fafa;      /* 쿨 민트 오프화이트 밴드 */
+      --canvas-cream: #f8f0e3;     /* 웜 크림 인터루드 */
+      --hairline: #e2ecec;
+      --mesh-sky: #a8dcec;
+      --mesh-lemon: #f6dfae;
+      --mesh-coral: #f9c3b4;
+      --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-pill: 9999px;
+      --shadow-card: 0 2px 5px -1px rgba(13,43,51,.08), 0 1px 3px -1px rgba(13,43,51,.06);
+      --shadow-lift: 0 13px 27px -5px rgba(13,43,51,.14), 0 8px 16px -8px rgba(13,43,51,.12);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
-      background: var(--bg); color: var(--ink); line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+      background: var(--canvas); color: var(--ink); line-height: 1.6;
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px; }
-    header { padding: 64px 0 48px; text-align: center; background: linear-gradient(180deg, var(--primary-soft) 0%, var(--bg) 100%); }
-    .logo { display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 22px; background: var(--primary); color: #fff; font-size: 36px; margin-bottom: 18px; box-shadow: 0 8px 24px rgba(14,143,136,.25); }
-    h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.5px; }
-    .tagline { font-size: 17px; color: var(--ink-soft); margin-top: 10px; }
-    .badge { display: inline-block; margin-top: 18px; padding: 7px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--primary-dark); font-size: 13.5px; font-weight: 600; }
-    section { padding: 44px 0 0; }
-    h2 { font-size: 21px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.3px; }
-    h2 .dot { color: var(--primary); }
-    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .wrap { max-width: 1024px; margin: 0 auto; padding: 0 24px; }
+    .num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; } /* 숫자 신뢰 시그널 */
+
+    /* ── 스킵 링크·포커스 ── */
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--primary-soft); outline-offset: 2px; border-radius: 4px; }
+
+    /* ── 헤더 (메시 위에 뜨는 반투명 내브) ── */
+    header.nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(226,236,236,.6);
+    }
+    .nav-inner { display: flex; align-items: center; gap: 28px; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+    .brand .mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--primary), var(--primary-soft)); display: grid; place-items: center; font-size: 16px; box-shadow: 0 4px 10px rgba(14,143,136,.3); }
+    .nav-links { display: flex; gap: 22px; margin-left: auto; }
+    .nav-links a { font-size: 14px; font-weight: 600; color: var(--ink-secondary); text-decoration: none; transition: color .15s; }
+    .nav-links a:hover { color: var(--primary-deep); }
+    .nav-cta { margin-left: 4px; font-size: 14px; font-weight: 700; color: var(--on-primary); background: var(--ink); padding: 8px 16px; border-radius: var(--r-pill); text-decoration: none; transition: background .15s; white-space: nowrap; }
+    .nav-cta:hover { background: var(--brand-dark); }
+    @media (max-width: 640px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+    /* ── 히어로: 그라디언트 메시 밴드 (기울어진 상단 1/3) ── */
+    .hero { position: relative; padding: 72px 0 96px; overflow: hidden; }
+    .hero::before {
+      content: ""; position: absolute; inset: -40% -20% 34% -20%; z-index: -2;
+      transform: skewY(-6deg); transform-origin: top left;
+      background:
+        radial-gradient(38% 60% at 12% 38%, var(--mesh-lemon) 0%, transparent 70%),
+        radial-gradient(42% 65% at 88% 22%, var(--mesh-coral) 0%, transparent 68%),
+        radial-gradient(55% 75% at 62% 58%, var(--mesh-sky) 0%, transparent 72%),
+        radial-gradient(60% 80% at 30% 75%, var(--primary-subdued) 0%, transparent 75%),
+        linear-gradient(160deg, #eefaf8 0%, #f3fbfa 55%, #ffffff 100%);
+    }
+    .hero::after { /* 메시 하단 화이트 페이드 */
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 140px; z-index: -1;
+      background: linear-gradient(180deg, transparent, var(--canvas));
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; }
+    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } }
+    .eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--primary-deep); background: rgba(255,255,255,.75); border: 1px solid rgba(14,143,136,.25); padding: 5px 13px; border-radius: var(--r-pill); margin-bottom: 22px; }
+    .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: .45; transform: scale(.8);} }
+    h1.display {
+      font-size: clamp(34px, 5.4vw, 54px); font-weight: 800; line-height: 1.12; letter-spacing: -0.035em; color: var(--ink);
+    }
+    h1.display .grad { background: linear-gradient(100deg, var(--primary-deep), var(--primary-soft)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero-sub { margin-top: 18px; font-size: 17px; line-height: 1.7; color: var(--ink-secondary); max-width: 46ch; }
+    .hero-ctas { margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px; background: var(--primary); color: var(--on-primary);
+      font-size: 15px; font-weight: 700; padding: 11px 20px; border-radius: var(--r-pill); text-decoration: none;
+      box-shadow: 0 6px 16px rgba(14,143,136,.32); transition: background .15s, transform .15s;
+    }
+    .btn-primary:hover { background: var(--primary-press); transform: translateY(-1px); }
+    .btn-primary .arr { transition: transform .18s; } .btn-primary:hover .arr { transform: translateX(3px); }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--primary-deep); text-decoration: none; padding: 11px 6px; }
+    .btn-ghost:hover { text-decoration: underline; text-underline-offset: 4px; }
+    .hero-note { margin-top: 16px; font-size: 12.5px; color: var(--ink-mute); }
+
+    /* ── 폰 목업 (CSS만으로 그린 앱 미리보기) ── */
+    .phone-col { display: flex; justify-content: center; }
+    .phone {
+      width: 264px; border-radius: 34px; background: var(--brand-dark); padding: 10px;
+      box-shadow: var(--shadow-lift), 0 30px 60px -18px rgba(13,43,51,.3); transform: rotate(2.5deg);
+    }
+    @media (max-width: 860px) { .phone { transform: rotate(0); margin-top: 8px; } }
+    .screen { border-radius: 26px; background: linear-gradient(180deg, #f4fbfa, #fff 40%); padding: 16px 14px 18px; font-size: 11px; }
+    .scr-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .scr-title { font-weight: 800; font-size: 13px; color: var(--ink); letter-spacing: -0.02em; }
+    .scr-chip { font-size: 9.5px; font-weight: 700; color: var(--primary-deep); background: var(--primary-subdued); border-radius: var(--r-pill); padding: 3px 8px; }
+    .scr-card { background: #fff; border: 1px solid var(--hairline); border-radius: 14px; padding: 11px 12px; box-shadow: var(--shadow-card); }
+    .scr-card + .scr-card { margin-top: 9px; }
+    .scr-row { display: flex; justify-content: space-between; align-items: center; }
+    .scr-label { color: var(--ink-mute); font-weight: 600; }
+    .scr-val { font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .scr-val.up { color: var(--primary-deep); }
+    .bars { display: flex; align-items: flex-end; gap: 5px; height: 44px; margin-top: 9px; }
+    .bars i { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--primary-soft), var(--primary)); opacity: .9; }
+    .bars i:nth-child(1){height:36%} .bars i:nth-child(2){height:46%} .bars i:nth-child(3){height:42%}
+    .bars i:nth-child(4){height:58%} .bars i:nth-child(5){height:64%} .bars i:nth-child(6){height:72%}
+    .scr-dday { display: flex; align-items: center; gap: 8px; }
+    .scr-dday .ic { width: 26px; height: 26px; border-radius: 8px; background: var(--canvas-cream); display: grid; place-items: center; font-size: 13px; }
+    .scr-foot { margin-top: 11px; text-align: center; font-size: 9px; color: var(--ink-mute); }
+
+    /* ── 공통 섹션 ── */
+    section { padding: 72px 0 0; }
+    .sec-eyebrow { font-size: 13px; font-weight: 800; letter-spacing: .08em; color: var(--primary-deep); margin-bottom: 10px; }
+    h2.sec-title { font-size: clamp(24px, 3.2vw, 32px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; color: var(--ink); }
+    .sec-sub { margin-top: 10px; font-size: 15.5px; color: var(--ink-secondary); max-width: 60ch; }
+
+    /* 공감 카드 */
+    .pains { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+    @media (max-width: 720px) { .pains { grid-template-columns: 1fr; } }
+    .pain { background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--r-lg); padding: 20px; font-size: 15px; line-height: 1.65; color: var(--ink-secondary); box-shadow: var(--shadow-card); }
+    .pain b { color: var(--primary-deep); }
+    .pain .q { display: block; font-size: 22px; line-height: 1; margin-bottom: 10px; }
+
+    /* 기능 밴드 (canvas-soft) */
+    .band-soft { background: var(--canvas-soft); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); margin-top: 72px; padding: 72px 0; }
+    .band-soft section { padding: 0; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 30px; }
+    @media (max-width: 860px) { .cards { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
-    .card .emoji { font-size: 24px; }
-    .card h3 { font-size: 15.5px; font-weight: 700; margin: 8px 0 4px; }
-    .card p { font-size: 13.5px; color: var(--ink-soft); }
-    .pains { display: flex; flex-direction: column; gap: 10px; }
-    .pain { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; font-size: 15px; }
-    .pain b { color: var(--primary-dark); }
-    .privacy-box { background: var(--primary-soft); border-radius: 18px; padding: 24px; }
-    .privacy-box h2 { margin-bottom: 10px; }
-    .privacy-box p { font-size: 15px; }
-    .privacy-box a { color: var(--primary-dark); font-weight: 700; }
-    .price { display: flex; gap: 12px; }
-    @media (max-width: 560px) { .price { flex-direction: column; } }
-    .price .card { flex: 1; text-align: center; padding: 24px 18px; }
-    .price .amount { font-size: 26px; font-weight: 800; color: var(--primary-dark); margin: 6px 0 2px; }
-    .price .note { font-size: 12.5px; color: var(--ink-soft); }
-    .disclaimer { margin-top: 44px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: #6b5b33; }
-    footer { margin-top: 48px; padding: 28px 0 44px; border-top: 1px solid var(--line); text-align: center; font-size: 13px; color: var(--ink-soft); }
-    footer a { color: var(--primary-dark); text-decoration: none; font-weight: 600; }
-    footer .row { margin-top: 4px; }
+    .card {
+      background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--r-xl); padding: 22px 20px;
+      box-shadow: var(--shadow-card); transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+    .card .emoji { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--canvas-soft); border: 1px solid var(--hairline); font-size: 20px; }
+    .card h3 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; margin: 12px 0 6px; color: var(--ink); }
+    .card p { font-size: 13.5px; color: var(--ink-mute); line-height: 1.65; }
+
+    /* 크림 인터루드 — 개인정보 */
+    .band-cream { background: var(--canvas-cream); margin-top: 72px; padding: 64px 0; }
+    .cream-grid { display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 640px) { .cream-grid { grid-template-columns: 1fr; } }
+    .lock-badge { width: 58px; height: 58px; border-radius: 18px; background: #fff; display: grid; place-items: center; font-size: 28px; box-shadow: var(--shadow-card); }
+    .band-cream h2 { font-size: clamp(21px, 2.8vw, 27px); font-weight: 800; letter-spacing: -0.03em; color: var(--ink); }
+    .band-cream p { margin-top: 10px; font-size: 15.5px; line-height: 1.75; color: var(--ink-secondary); max-width: 62ch; }
+    .band-cream a { color: var(--primary-deep); font-weight: 700; }
+    .privacy-points { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .pp { font-size: 13px; font-weight: 700; color: var(--ink-secondary); background: rgba(255,255,255,.8); border: 1px solid rgba(13,43,51,.08); padding: 6px 13px; border-radius: var(--r-pill); }
+
+    /* 가격 */
+    .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+    @media (max-width: 640px) { .price-grid { grid-template-columns: 1fr; } }
+    .price-card { border-radius: var(--r-xl); padding: 30px 26px; border: 1px solid var(--hairline); background: var(--canvas); box-shadow: var(--shadow-card); }
+    .price-card.featured { background: var(--brand-dark); color: #fff; border-color: transparent; position: relative; overflow: hidden; }
+    .price-card.featured::after { content: ""; position: absolute; right: -46px; top: -46px; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, rgba(53,176,168,.5), transparent 70%); }
+    .price-name { font-size: 14px; font-weight: 800; letter-spacing: .04em; color: var(--primary-deep); }
+    .featured .price-name { color: #8fd8d2; }
+    .price-amount { margin: 10px 0 2px; font-size: 34px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .price-per { font-size: 13px; color: var(--ink-mute); } .featured .price-per { color: #b8d9d6; }
+    .price-list { list-style: none; margin-top: 18px; display: grid; gap: 9px; }
+    .price-list li { font-size: 14px; line-height: 1.55; color: var(--ink-secondary); padding-left: 24px; position: relative; }
+    .featured .price-list li { color: #e3f2f1; }
+    .price-list li::before { content: "✓"; position: absolute; left: 0; top: 0; font-weight: 800; color: var(--primary); }
+    .featured .price-list li::before { color: #6fd0c8; }
+
+    /* 면책 */
+    .disclaimer { margin-top: 72px; background: #fffaf0; border: 1px solid #f0e2c4; border-radius: var(--r-lg); padding: 18px 20px; font-size: 13px; line-height: 1.7; color: #6b5b33; }
+
+    /* 푸터 (딥 틸) */
+    footer { margin-top: 72px; background: var(--brand-dark); color: #cfe6e4; }
+    .foot-inner { padding-top: 44px; padding-bottom: 52px; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; justify-content: space-between; }
+    .foot-brand { font-weight: 800; font-size: 17px; color: #fff; letter-spacing: -0.02em; }
+    .foot-desc { margin-top: 8px; font-size: 13px; color: #9cc4c0; }
+    .foot-links { display: grid; gap: 8px; font-size: 13.5px; }
+    .foot-links a { color: #cfe6e4; text-decoration: none; } .foot-links a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+    .foot-copy { border-top: 1px solid rgba(255,255,255,.12); padding-top: 18px; padding-bottom: 26px; font-size: 12px; color: #86b1ad; }
+
+    /* 스크롤 등장 모션 */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .eyebrow .dot { animation: none; }
+      .card, .btn-primary { transition: none; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <div class="logo">👁️</div>
-      <h1>마미아이</h1>
-      <p class="tagline">안과·안경원에 흩어진 우리 아이 시력 기록을 한곳에.<br>현직 안경사가 만든 아동 근시 기록 앱</p>
-      <span class="badge">📱 Google Play 출시 준비 중 · 2026</span>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#"><span class="mark">👁️</span>마미아이</a>
+      <nav class="nav-links" aria-label="주요 메뉴">
+        <a href="#features">기능</a>
+        <a href="#privacy">개인정보</a>
+        <a href="#pricing">가격</a>
+        <a href="mailto:tkatn2020@gmail.com">문의</a>
+        <a class="nav-cta" href="./privacy.html">개인정보 처리방침</a>
+      </nav>
     </div>
   </header>
 
+  <!-- 히어로: 그라디언트 메시 -->
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Google Play 출시 준비 중 · 2026</span>
+        <h1 class="display">흩어진 우리 아이<br>시력 기록, <span class="grad">한곳에.</span></h1>
+        <p class="hero-sub">안과와 안경원을 오가며 쌓인 검사 결과 — 이제 처방전을 찾아 헤매지 마세요. 현직 안경사가 만든 아동 근시 기록 앱, 마미아이가 차곡차곡 정리해 드립니다.</p>
+        <div class="hero-ctas">
+          <a class="btn-primary" href="#features">무엇을 해주나요 <span class="arr" aria-hidden="true">→</span></a>
+          <a class="btn-ghost" href="./privacy.html">개인정보 처리방침 보기</a>
+        </div>
+        <p class="hero-note">회원가입 없음 · 기록은 휴대폰 안에만 저장 · 핵심 기능 무료</p>
+      </div>
+      <div class="phone-col" aria-hidden="true">
+        <div class="phone"><div class="screen">
+          <div class="scr-head">
+            <span class="scr-title">지우의 리포트</span>
+            <span class="scr-chip">기록 1년 3개월차</span>
+          </div>
+          <div class="scr-card">
+            <div class="scr-row"><span class="scr-label">오른눈 (OD)</span><span class="scr-val num">−1.50 D</span></div>
+            <div class="scr-row" style="margin-top:5px"><span class="scr-label">왼눈 (OS)</span><span class="scr-val num">−1.25 D</span></div>
+            <div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="scr-card scr-dday">
+            <span class="ic">🗓️</span>
+            <div>
+              <div class="scr-label">다음 검진까지</div>
+              <div class="scr-val up num">D-45</div>
+            </div>
+          </div>
+          <div class="scr-card scr-row">
+            <span class="scr-label">무상교체 보증</span>
+            <span class="scr-chip">진행 중</span>
+          </div>
+          <div class="scr-foot">기록 정리·교육용 참고 화면 예시</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
   <main class="wrap">
-    <section>
-      <h2><span class="dot">●</span> 이런 순간, 있으셨죠?</h2>
+    <!-- 공감 -->
+    <section class="reveal" aria-labelledby="pains-t">
+      <div class="sec-eyebrow">이런 순간, 있으셨죠?</div>
+      <h2 class="sec-title" id="pains-t">검진 갈 때마다 반복되는 곤란함</h2>
       <div class="pains">
-        <div class="pain">"지난번 <b>처방전을 어디 뒀는지</b> 기억이 안 나요."</div>
-        <div class="pain">"이번 검사 결과가 <b>지난번보다 나빠진 건지</b> 잘 모르겠어요."</div>
-        <div class="pain">"안경 렌즈 <b>무상교체 기간</b>이 언제까지였더라…?"</div>
+        <div class="pain"><span class="q" aria-hidden="true">🧾</span>"지난번 <b>처방전을 어디 뒀는지</b> 기억이 안 나요."</div>
+        <div class="pain"><span class="q" aria-hidden="true">📉</span>"이번 검사 결과가 <b>지난번보다 나빠진 건지</b> 잘 모르겠어요."</div>
+        <div class="pain"><span class="q" aria-hidden="true">👓</span>"안경 렌즈 <b>무상교체 기간</b>이 언제까지였더라…?"</div>
       </div>
     </section>
+  </main>
 
-    <section>
-      <h2><span class="dot">●</span> 마미아이가 해드려요</h2>
-      <div class="cards">
-        <div class="card"><span class="emoji">📋</span><h3>기록을 한곳에</h3><p>안과·안경원 검사값(도수·교정시력)을 출처별로 구분해 차곡차곡 보관해요.</p></div>
-        <div class="card"><span class="emoji">📈</span><h3>변화가 한눈에</h3><p>시간에 따른 도수 변화와 우리 아이 시력 유형을 쉬운 말로 풀어드려요.</p></div>
-        <div class="card"><span class="emoji">🔮</span><h3>성장 시뮬레이션</h3><p>공개 연구 기반으로 근시 진행 흐름을 참고용으로 그려봐요. 전부 무료예요.</p></div>
-        <div class="card"><span class="emoji">🗓️</span><h3>검진 준비 도우미</h3><p>다음 검진 D-day 알림과 검사실에서 물어볼 질문 리스트를 챙겨드려요.</p></div>
-        <div class="card"><span class="emoji">👓</span><h3>무상교체 추적</h3><p>근시관리 렌즈의 보증 기간과 교체 조건 해당 여부를 대신 계산해요.</p></div>
-        <div class="card"><span class="emoji">📄</span><h3>리포트 PDF</h3><p>기록을 병원에 제출하기 좋은 정돈된 리포트로 발급하고 공유할 수 있어요.</p></div>
-      </div>
-    </section>
+  <!-- 기능 밴드 -->
+  <div class="band-soft" id="features">
+    <div class="wrap">
+      <section class="reveal" aria-labelledby="feat-t">
+        <div class="sec-eyebrow">마미아이가 해드려요</div>
+        <h2 class="sec-title" id="feat-t">기록부터 검진 준비까지, 여섯 가지</h2>
+        <div class="cards">
+          <div class="card"><span class="emoji" aria-hidden="true">📋</span><h3>기록을 한곳에</h3><p>안과·안경원 검사값(도수·교정시력)을 출처별로 구분해 차곡차곡 보관해요.</p></div>
+          <div class="card"><span class="emoji" aria-hidden="true">📈</span><h3>변화가 한눈에</h3><p>시간에 따른 도수 변화와 우리 아이 시력 유형을 쉬운 말로 풀어드려요.</p></div>
+          <div class="card"><span class="emoji" aria-hidden="true">🔮</span><h3>성장 시뮬레이션</h3><p>공개 연구 기반으로 근시 진행 흐름을 참고용으로 그려봐요. 전부 무료예요.</p></div>
+          <div class="card"><span class="emoji" aria-hidden="true">🗓️</span><h3>검진 준비 도우미</h3><p>다음 검진 D-day 알림과 검사실에서 물어볼 질문 리스트를 챙겨드려요.</p></div>
+          <div class="card"><span class="emoji" aria-hidden="true">👓</span><h3>무상교체 추적</h3><p>근시관리 렌즈의 보증 기간과 교체 조건 해당 여부를 대신 계산해요.</p></div>
+          <div class="card"><span class="emoji" aria-hidden="true">📄</span><h3>리포트 PDF</h3><p>기록을 병원에 제출하기 좋은 정돈된 리포트로 발급하고 공유할 수 있어요.</p></div>
+        </div>
+      </section>
+    </div>
+  </div>
 
-    <section>
-      <div class="privacy-box">
-        <h2>🔒 아이 정보는 기기 밖으로 나가지 않아요</h2>
+  <!-- 개인정보 크림 인터루드 -->
+  <div class="band-cream" id="privacy">
+    <div class="wrap cream-grid reveal">
+      <div class="lock-badge" aria-hidden="true">🔒</div>
+      <div>
+        <h2>아이 정보는 기기 밖으로 나가지 않아요</h2>
         <p>마미아이는 회원가입도, 로그인도, 서버도 없는 <b>온디바이스 앱</b>이에요. 입력한 모든 기록은 보호자의 휴대폰 안에만 저장되고, 개발자를 포함한 누구에게도 전송되지 않아요. 자세한 내용은 <a href="./privacy.html">개인정보 처리방침</a>에서 확인하세요.</p>
+        <div class="privacy-points">
+          <span class="pp">✓ 회원가입 없음</span>
+          <span class="pp">✓ 서버 전송 없음</span>
+          <span class="pp">✓ 공유는 보호자가 직접 실행할 때만</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <!-- 가격 -->
+    <section class="reveal" id="pricing" aria-labelledby="price-t">
+      <div class="sec-eyebrow">가격</div>
+      <h2 class="sec-title" id="price-t">핵심 기능은 계속 무료예요</h2>
+      <p class="sec-sub">기록·그래프·시뮬레이션은 무료로 쓰고, 병원 제출용 종합 리포트가 필요할 때만 발급권을 구매하세요.</p>
+      <div class="price-grid">
+        <div class="price-card">
+          <div class="price-name">기본</div>
+          <div class="price-amount num">무료</div>
+          <div class="price-per">계속 무료</div>
+          <ul class="price-list">
+            <li>검사 기록 · 변화 그래프</li>
+            <li>근시 성장 시뮬레이션</li>
+            <li>검진 준비 도우미 · D-day 알림</li>
+            <li>무상교체 보증 추적</li>
+          </ul>
+        </div>
+        <div class="price-card featured">
+          <div class="price-name">리포트 발급권</div>
+          <div class="price-amount num">₩2,900</div>
+          <div class="price-per">1회 발급 · 구독 아님</div>
+          <ul class="price-list">
+            <li>종합 리포트 + 제출용 PDF</li>
+            <li>형제자매까지 가족 전체 포함</li>
+            <li>발급본 영구 열람 · PDF 재다운로드 무제한</li>
+            <li>새 기록이 쌓이면 최신본만 다시 발급</li>
+          </ul>
+        </div>
       </div>
     </section>
 
-    <section>
-      <h2><span class="dot">●</span> 가격</h2>
-      <div class="price">
-        <div class="card"><h3>기록·그래프·시뮬레이션</h3><div class="amount">무료</div><div class="note">핵심 기능은 계속 무료예요</div></div>
-        <div class="card"><h3>리포트 발급권</h3><div class="amount">₩2,900</div><div class="note">1회 발급 · 형제자매까지 가족 전체 포함 · PDF 재다운로드 무제한</div></div>
-      </div>
-    </section>
-
-    <div class="disclaimer">
+    <!-- 면책 -->
+    <div class="disclaimer reveal">
       ⚠️ 마미아이는 의료기기가 아니며 진단·치료·처방을 제공하지 않습니다. 기록 정리와 교육을 돕는 참고 도구이며, 아이의 시력 건강에 관한 판단은 반드시 안과 전문의와 상담하세요.
     </div>
   </main>
 
   <footer>
-    <div class="wrap">
-      <div><b>마미아이</b> · 아동 근시 기록 앱</div>
-      <div class="row">문의: <a href="mailto:tkatn2020@gmail.com">tkatn2020@gmail.com</a> · <a href="./privacy.html">개인정보 처리방침</a></div>
-      <div class="row">© 2026 Mamiai. All rights reserved.</div>
+    <div class="wrap foot-inner">
+      <div>
+        <div class="foot-brand">👁️ 마미아이</div>
+        <div class="foot-desc">현직 안경사가 만든 아동 근시 기록 앱</div>
+      </div>
+      <nav class="foot-links" aria-label="푸터 메뉴">
+        <a href="./privacy.html">개인정보 처리방침</a>
+        <a href="mailto:tkatn2020@gmail.com">문의: tkatn2020@gmail.com</a>
+      </nav>
     </div>
+    <div class="wrap foot-copy">© 2026 Mamiai. All rights reserved.</div>
   </footer>
+
+  <script>
+    // 스크롤 등장 — prefers-reduced-motion은 CSS에서 무효화됨
+    const io = new IntersectionObserver((es) => {
+      es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
 </body>
 </html>
